@@ -1,23 +1,95 @@
 require("dotenv").config();
 const express = require('express');
 const cors = require('cors');
-const emitter = require('./utils/eventemitter');
+const mongoose = require('mongoose');
+const { MONGO_URI } = process.env;
+const Gen = require('./models/model');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.post('/api/v1/maillist', async (req, res) => {
+// connect to mongoDB
+const connectToMongoDB = async () => {
     try {
-        const { message } = req.body;
-        if (!message) return res.status(400).json({message: 'phrase not inputted!'});
+      await mongoose.connect(MONGO_URI);
+      console.log("connected to database");
+    } catch (error) {
+      console.error(`error: ${error.message}`);
+    }
+  };
 
-        emitter.emit('send-email', {email: 'denisa.baciu010@gmail.com', message});
+app.get('/userinfo', async (req, res) => {
+    try {
+        const gen = await Gen.findOne({genId: 'myopencustody'});
+        if (!gen) {
+            console.error('Gen Model has not been updated');
+            return res.status(500).json({message: "an error occurred"});
+        }
 
-        return res.redirect('http://localhost:1120/api/v1/home');
+        const stakedBal = String(gen.stakedBal);
+        const availBal = String(gen.availBal);
+        const rewards = String(gen.rewards);
+
+        res.status(200).json({data: {stakedBal, availBal, rewards}});
     } catch (error) {
         console.error(error.message);
+        res.status(500).json({"error": "an error occurred"});
+    }
+})
+
+app.post('/add-rewards', async (req, res) => {
+    try {
+        const gen = await Gen.findOne({genId: "myopencustody"});
+        if (!gen) {
+            console.error('Gen Model has not been updated');
+            return res.status(400).json({message: "Gen Model has not been updated"});
+        }
+
+        const updatedAt = new Date(gen.updatedAt);
+        const today = new Date();
+        
+        // Normalize both dates to midnight for accurate comparison
+        updatedAt.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (updatedAt === today) {
+            console.error('reward already added today');
+            return res.status(400).json({message:"reward already added today"});
+        }
+
+        gen.rewards = gen.rewards + 3263.582;
+        gen.updatedAt = new Date();
+        await gen.save();
+        res.status(200).json({message: "reward added successfully"});
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({message: "an error occurred"});
+    }
+})
+
+app.post('/create', async (req, res) => {
+    try {
+        const {genId, stakedBal, availBal, rewards} = req.body;
+
+        const gen = await Gen.findOne({genId})
+        if (gen) {
+            return res.status(400).json({message: "Gen Model already exist"});
+        }
+
+        const newGen = await Gen.create({
+            genId,
+            stakedBal,
+            availBal,
+            rewards
+        });
+
+        res.status(200).json({message: "Gen Model created successfully", data: newGen});
+        
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({message: "an error occurred"})
     }
 })
 
@@ -26,5 +98,10 @@ app.all("*", (req, res) => {
   });
   
   const port = process.env.PORT;
-  
-  app.listen(port, () => console.log(`Server up and running on port: ${port}`));
+
+  //Connect to the database before listening
+connectToMongoDB().then(() => {
+    app.listen(port, () => {
+      console.log("listening for requests");
+    });
+});
