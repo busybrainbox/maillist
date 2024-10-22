@@ -39,7 +39,7 @@ app.get('/userinfo', async (req, res) => {
     }
 })
 
-app.post('/add-rewards', async (req, res) => {
+app.post('/addrewards', async (req, res) => {
     try {
         const gen = await Gen.findOne({genId: "myopencustody"});
         if (!gen) {
