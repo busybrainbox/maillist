@@ -54,15 +54,14 @@ app.post('/addrewards', async (req, res) => {
         updatedAt.setHours(0, 0, 0, 0);
         today.setHours(0, 0, 0, 0);
 
-        if (updatedAt === today) {
-            console.error('reward already added today');
+        if (updatedAt.getTime() === today.getTime()) {
             return res.status(400).json({message:"reward already added today"});
         }
 
         gen.rewards = gen.rewards + 3263.582;
         gen.updatedAt = new Date();
         await gen.save();
-        res.status(200).json({message: "reward added successfully"});
+        res.status(200).json({message: "reward added successfully", rewards: String(gen.rewards)});
     } catch (error) {
         console.error(error.message);
         res.status(500).json({message: "an error occurred"});
