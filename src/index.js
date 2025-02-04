@@ -58,7 +58,7 @@ app.post('/addrewards', async (req, res) => {
             return res.status(400).json({message:"reward already added today"});
         }
 
-        gen.rewards = gen.rewards + 3263.582;
+        gen.rewards = gen.rewards + 967.954;
         gen.updatedAt = new Date();
         await gen.save();
         res.status(200).json({message: "reward added successfully", rewards: String(gen.rewards)});
